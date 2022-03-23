@@ -1,0 +1,1 @@
+class Daily_report(db)
