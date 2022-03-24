@@ -6,9 +6,11 @@ from flask import Flask, make_response
 from flask_mongoengine import MongoEngine
 from flask_apscheduler import APScheduler
 from datetime import date,datetime,timedelta
+from flask_cors import CORS
 
 project_root = os.path.dirname(__file__)
 app = Flask(__name__)
+CORS(app)
 
 database_name = "vovid-uk"
 DB_URI = "mongodb+srv://chanon:132231@cluster0.broqy.mongodb.net/vovid-uk?authSource=admin&replicaSet=Cluster0-shard-0&readPreference=primary&appname=MongoDB%20Compass&ssl=true"
