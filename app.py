@@ -23,24 +23,31 @@ scheduler.init_app(app)
 scheduler.start()
 
 @app.route("/daily",methods=['POST'])
-@scheduler.task('cron', id='do_job_2', day='*',hour='9', minute='0')
 def dailyFunc():
    structure = '{"date":"date","newCases":"newCasesByPublishDate","location":"areaName","totalCase":"cumCasesByPublishDate","newDeath":"newDeathsByDeathDate","totalDeath":"cumDeathsByDeathDate"}'
    today = date.today()-timedelta(days=1)
-   today.__init_subclass__
 
    today_date = today.isoformat()
 
    url = "https://api.coronavirus.data.gov.uk/v1/data?filters=areaType=nation;date>"+today_date+"&structure="+structure
    print(url)
    response = get(url)
+   if not response.text:
+      print("nodata")
+      return "empty"
    jsonText = json.loads(response.text)["data"]
-   response = app.response_class(
-        response=jsonText,
-        status=200,
-        mimetype='application/json'
-    )
+   # response = app.response_class(
+   #      response=jsonText,
+   #      status=200,
+   #      mimetype='application/json'
+   #  )
    # jsonText = jsonText["data"]
+   
+   recent_date = jsonText[0]["date"]
+   if Daily_report.objects(date= recent_date):
+      print("alredy update")
+      print("end daily fuc")
+      return "end"
    for i in range(len(jsonText)):
       content = jsonText[i]
       # print(content)
@@ -52,7 +59,7 @@ def dailyFunc():
          death = content["totalDeath"],
          location = content["location"]
       )
-      report.save()
+      # report.save()
    return json.dumps(jsonText)
 
 @app.route("/api/weekly-cases",methods=['get'])
