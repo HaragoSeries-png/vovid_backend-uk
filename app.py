@@ -59,7 +59,7 @@ def dailyFunc():
          death = content["totalDeath"],
          location = content["location"]
       )
-      # report.save()
+      report.save()
    return json.dumps(jsonText)
 
 @app.route("/api/weekly-cases",methods=['get'])
