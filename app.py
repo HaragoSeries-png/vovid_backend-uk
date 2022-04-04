@@ -2,7 +2,7 @@ from email.policy import default
 import os
 from requests import get
 import json
-from flask import Flask, make_response 
+from flask import Flask, make_response ,request
 from flask_mongoengine import MongoEngine
 from flask_apscheduler import APScheduler
 from datetime import date,datetime,timedelta
@@ -24,26 +24,41 @@ scheduler.start()
 
 @app.route("/daily",methods=['POST'])
 def dailyFunc():
+   args = request.args
+   initer = args.get("opt", default='', type=str)
    structure = '{"date":"date","newCases":"newCasesByPublishDate","location":"areaName","totalCase":"cumCasesByPublishDate","newDeath":"newDeathsByDeathDate","totalDeath":"cumDeathsByDeathDate"}'
-   today = date.today()-timedelta(days=1)
+   today = date.today()
 
    today_date = today.isoformat()
 
-   url = "https://api.coronavirus.data.gov.uk/v1/data?filters=areaType=nation;date>"+today_date+"&structure="+structure
-   print(url)
+   curr_date = today
+   query_date = curr_date.isoformat()
+   # find last date
+   
+
+   if initer=="start":
+      temp_date = today-timedelta(days=30)
+      url = "https://api.coronavirus.data.gov.uk/v1/data?filters=areaType=nation;date>"+temp_date.isoformat()+"&structure="+structure
+   else:
+      while True:
+
+         if Daily_report.objects(date= curr_date.isoformat()):
+            query_date = curr_date.isoformat()
+            # print("currdate is : "+query_date)
+            break
+         curr_date = curr_date-timedelta(days=1)
+      url = "https://api.coronavirus.data.gov.uk/v1/data?filters=areaType=nation;date>"+query_date+"&structure="+structure
    response = get(url)
    if not response.text:
       print("nodata")
       return "empty"
    jsonText = json.loads(response.text)["data"]
-   # response = app.response_class(
-   #      response=jsonText,
-   #      status=200,
-   #      mimetype='application/json'
-   #  )
-   # jsonText = jsonText["data"]
-   
+
+   # jsonText = jsonText["data"] 
    recent_date = jsonText[0]["date"]
+
+
+
    if Daily_report.objects(date= recent_date):
       print("alredy update")
       print("end daily fuc")
@@ -65,7 +80,7 @@ def dailyFunc():
 @app.route("/api/weekly-cases",methods=['get'])
 def todayCases2():
    today = date.today()
-   curr_date = today
+   curr_date = today-timedelta(days=1)
    date_arr = []
    exc_field = ["id","created_at"]
    data_arr = []
@@ -77,6 +92,24 @@ def todayCases2():
       reData ={"date":today_date,"result":json.loads(qData)}
       curr_date = curr_date-timedelta(days=1)   
       data_arr.append(reData)
+
+   return json.dumps(data_arr)
+
+@app.route("/api/cases",methods=['get'])
+def Cases2():
+   args = request.args
+   
+   today = date.today()
+   yesterday = today-timedelta(days=1) 
+   qdate = args.get("date", default=yesterday.isoformat(), type=str)
+
+   exc_field = ["id","created_at"]
+   data_arr = []
+  
+     
+   qData = Daily_report.objects(date=qdate).exclude(*exc_field).order_by("location").to_json()
+   reData ={"date":qdate,"result":json.loads(qData)}  
+   data_arr.append(reData)
 
    return json.dumps(data_arr)
 
